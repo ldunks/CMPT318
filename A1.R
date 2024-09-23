@@ -64,6 +64,7 @@ filtered_data <- DataDf %>%
   filter(Date >= start_date & Date <= end_date)
 
 
+####### Q2 uses filtered_data #######
 
 
 
