@@ -71,7 +71,12 @@ library(corrplot)
 columns <- c("Global_active_power", "Global_reactive_power", "Voltage", "Global_intensity", 
              "Sub_metering_1", "Sub_metering_2", "Sub_metering_3")
 
-#loop to calculate correlations
+#https://corrr.tidymodels.org/reference/correlate.html
+#correlations will be computed from complete observations
+#for plot/visualization
+cor_matrix <- cor(filtered_data[columns], method = "pearson", use = "complete.obs")
+
+#loop to calculate correlations/print out values
 for (i in 1:length(columns)) {
   for (j in (i+1):length(columns)) {
     var1 <- filtered_data[[columns[i]]]
