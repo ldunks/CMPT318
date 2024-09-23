@@ -1,9 +1,8 @@
-#Q1
+
 # installed zoo to have access to the approx function to do linear interpolation
 install.packages("zoo")
 library(zoo)
 
-# installed dplyr to allow filtering of data
 install.packages("dplyr")
 library(dplyr)
 
@@ -64,21 +63,15 @@ filtered_data <- DataDf %>%
   filter(Date >= start_date & Date <= end_date)
 
 
-####### Q2 uses filtered_data #######
-#Q2
+
 library(corrplot)
 
 columns <- c("Global_active_power", "Global_reactive_power", "Voltage", "Global_intensity", 
              "Sub_metering_1", "Sub_metering_2", "Sub_metering_3")
 
-#https://corrr.tidymodels.org/reference/correlate.html
-#correlations will be computed from complete observations
-#for plot/visualization
-cor_matrix <- cor(filtered_data[columns], method = "pearson", use = "complete.obs")
-
-#loop to calculate correlations/print out values
-for (i in 1:length(columns)) {
-  for (j in (i+1):length(columns)) {
+#loop to calculate correlations
+for (i in 1:(length(columns)-1)) {
+  for (j in (i):length(columns)) {
     var1 <- filtered_data[[columns[i]]]
     var2 <- filtered_data[[columns[j]]]
     
@@ -88,11 +81,37 @@ for (i in 1:length(columns)) {
   }
 }
 
+
+# Create an empty correlation matrix
+correlation_matrix <- matrix(NA, nrow = length(columns), ncol = length(columns))
+
+# Set row and column names for the correlation matrix
+rownames(correlation_matrix) <- columns
+colnames(correlation_matrix) <- columns
+
+# Loop to calculate correlations
+for (i in 1:(length(columns))) {
+  for (j in (i):length(columns)) {
+    var1 <- filtered_data[[columns[i]]]
+    var2 <- filtered_data[[columns[j]]]
+    
+    correlation <- cor(var1, var2, method = "pearson")
+    
+    # Store the correlation in the matrix
+    correlation_matrix[i, j] <- correlation
+    correlation_matrix[j, i] <- correlation  # To ensure the matrix is symmetric
+    
+    print(sprintf("Correlation between %s and %s: %0.2f", columns[i], columns[j], correlation))
+  }
+}
+
+# View the correlation matrix
+print(correlation_matrix)
+
+
 #http://www.sthda.com/english/wiki/visualize-correlation-matrix-using-correlogram
 #used "color" and "upper" styles to color code and display upper triangular of correlation matrix 
-corrplot(cor_matrix, method = "color", type = "upper", 
+corrplot(correlation_matrix, method = "color", type = "upper", 
          tl.col = "black", tl.srt = 45, tl.cex = 0.6, addCoef.col = "black", 
          number.cex = 0.6, col = colorRampPalette(c("blue", "white", "red"))(200))
-
-
 
