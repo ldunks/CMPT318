@@ -6,6 +6,9 @@ library(zoo)
 install.packages("dplyr")
 library(dplyr)
 
+# install corrplot packages 
+install.packages("corrplot")
+
 # Open the data as a dataframe, keeping the first row as header
 DataDf <- read.table("Group_Assignment_Dataset.txt", header = T, sep = ",")
 
@@ -114,4 +117,49 @@ print(correlation_matrix)
 corrplot(correlation_matrix, method = "color", type = "upper", 
          tl.col = "black", tl.srt = 45, tl.cex = 0.6, addCoef.col = "black", 
          number.cex = 0.6, col = colorRampPalette(c("blue", "white", "red"))(200))
+####### Task 3 #######
+
+# Create a vector to store combined date and time from filtered_data
+date_time <- as.POSIXct(paste(filtered_data$Date, filtered_data$Time))
+
+# Create a Daytime window 
+daytime <- filtered_data %>%
+  filter(format(date_time, "%H:%M:%S") >= "07:30:00" & format(date_time, "%H:%M:%S") <= "17:00:00")
+
+# Create a Nighttime window
+nighttime <- filtered_data %>%
+  filter(format(date_time, "%H:%M:%S") > "17:00:00" |format(date_time, "%H:%M:%S") < "07:30:00")
+
+# Calculate average Global_intensity for the daytime during the week days 
+# Each value corresponds to an average Global_intensity for each minute across 5 Week Days
+day_weekday_average <- daytime %>%
+  filter(weekdays(Date) != "Saturday" & weekdays(Date) != "Sunday") %>%
+  group_by(Time) %>%
+  summarize(average = mean(Global_intensity, na.rm = TRUE))
+
+# Calculate average Global_intensity for the nightime during the week days 
+# Each value corresponds to an average Global_intensity for each time minute across 5 Week Days
+
+night_weekday_average <- nighttime %>%
+  filter(weekdays(Date) != "Saturday" & weekdays(Date) != "Sunday") %>%
+  group_by(Time) %>%
+  summarize(average = mean(Global_intensity, na.rm = TRUE))
+
+# Calculate average Global_intensity for the daytime during the weekend days 
+# Each value corresponds to an average Global_intensity for each minute across 5 Week Days
+day_weekend_average <- daytime %>%
+  filter(weekdays(Date) == "Saturday" | weekdays(Date) == "Sunday") %>%
+  group_by(Time) %>%
+  summarize(average = mean(Global_intensity, na.rm = TRUE))
+
+# Calculate average Global_intensity for the nighttime during the weekend days 
+# Each value corresponds to an average Global_intensity for each minute across 5 Week Days
+night_weekend_average <- nighttime %>%
+  filter(weekdays(Date) == "Saturday" | weekdays(Date) == "Sunday") %>%
+  group_by(Time) %>%
+  summarize(average = mean(Global_intensity, na.rm = TRUE))
+
+
+
+
 
