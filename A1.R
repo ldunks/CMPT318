@@ -54,6 +54,12 @@ for (col in columns){
 }
 print(anomalies)
 
+anomaly_matrix <- abs(z_scores) > 3
+
+# Count the number of rows with at least one anomaly
+total_anomalies <- sum(rowSums(anomaly_matrix, na.rm = TRUE) > 0)
+
+print(paste("percentage of data with anonamlies", 100*(total_anomalies/nrow(z_scores))))
 
 ########## WEEK SELECTION ############
 
