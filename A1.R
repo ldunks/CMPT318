@@ -6,8 +6,13 @@ library(zoo)
 install.packages("dplyr")
 library(dplyr)
 
+
 # install corrplot packages 
 install.packages("corrplot")
+
+install.packages("ggplot2")
+library(ggplot2)
+
 
 # Open the data as a dataframe, keeping the first row as header
 DataDf <- read.table("Group_Assignment_Dataset.txt", header = T, sep = ",")
@@ -163,3 +168,77 @@ night_weekend_average <- nighttime %>%
 
 
 
+# Task 3
+# Load the dataset
+data <- read.csv("Group_Assignment_Dataset.txt", sep = ",", header = TRUE)
+
+# Combine the Date and Time columns to create a proper datetime column
+data <- data %>%
+  mutate(Datetime = as.POSIXlt(paste(Date, Time), format = "%d/%m/%Y %H:%M:%S"))
+
+# Extract the day of the week
+data <- data %>%
+  mutate(Weekday = weekdays(Datetime),
+         is_weekend = ifelse(Weekday %in% c("Saturday", "Sunday"), "Weekend", "Weekday"))
+
+# Define the daytime (7:30 AM to 5 PM) and nighttime windows
+daytime_start <- "07:30:00"
+daytime_end <- "17:00:00"
+
+# Filter the dataset for daytime
+daytime_data <- data %>%
+  filter(format(Datetime, "%H:%M:%S") >= daytime_start & format(Datetime, "%H:%M:%S") <= daytime_end)
+
+# Calculate average Global_intensity for each time point for weekdays and weekends
+average_daytime_weekdays <- daytime_data %>%
+  filter(is_weekend == "Weekday") %>%
+  group_by(Time) %>%
+  summarise(avg_intensity_weekday = mean(Global_intensity, na.rm = TRUE))
+
+average_daytime_weekends <- daytime_data %>%
+  filter(is_weekend == "Weekend") %>%
+  group_by(Time) %>%
+  summarise(avg_intensity_weekend = mean(Global_intensity, na.rm = TRUE))
+
+# Combine the data for weekdays and weekends
+average_daytime <- merge(average_daytime_weekdays, average_daytime_weekends, by = "Time")
+
+# Convert time to numeric to facilitate regression analysis
+average_daytime <- average_daytime %>%
+  mutate(Time_numeric = as.numeric(strptime(Time, "%H:%M:%S")))
+
+# Linear regression for weekdays and weekends
+fit_linear_weekday <- lm(avg_intensity_weekday ~ Time_numeric, data = average_daytime)
+fit_linear_weekend <- lm(avg_intensity_weekend ~ Time_numeric, data = average_daytime)
+
+# Polynomial regression for weekdays and weekends (degree 2)
+fit_polynomial_weekday <- lm(avg_intensity_weekday ~ poly(Time_numeric, 2, raw = TRUE), data = average_daytime)
+fit_polynomial_weekend <- lm(avg_intensity_weekend ~ poly(Time_numeric, 2, raw = TRUE), data = average_daytime)
+
+# Create plot for linear regression with a legend
+plot_linear <- ggplot(average_daytime, aes(x = Time_numeric)) +
+  geom_point(aes(y = avg_intensity_weekday, color = "Weekday"), alpha = 0.5) +
+  geom_point(aes(y = avg_intensity_weekend, color = "Weekend"), alpha = 0.5) +
+  geom_smooth(aes(y = avg_intensity_weekday, color = "Weekday"), method = "lm", se = FALSE) +
+  geom_smooth(aes(y = avg_intensity_weekend, color = "Weekend"), method = "lm", se = FALSE) +
+  labs(title = "Linear Regression of Global_intensity (Weekday vs Weekend)",
+       x = "Time (Numeric)", y = "Average Global_intensity") +
+  scale_color_manual(values = c("Weekday" = "blue", "Weekend" = "red")) +
+  theme_minimal() +
+  theme(legend.title = element_blank())
+
+# Create plot for polynomial regression with a legend
+plot_polynomial <- ggplot(average_daytime, aes(x = Time_numeric)) +
+  geom_point(aes(y = avg_intensity_weekday, color = "Weekday"), alpha = 0.5) +
+  geom_point(aes(y = avg_intensity_weekend, color = "Weekend"), alpha = 0.5) +
+  geom_smooth(aes(y = avg_intensity_weekday, color = "Weekday"), method = "lm", formula = y ~ poly(x, 2), linetype = "dashed", se = FALSE) +
+  geom_smooth(aes(y = avg_intensity_weekend, color = "Weekend"), method = "lm", formula = y ~ poly(x, 2), linetype = "dashed", se = FALSE) +
+  labs(title = "Polynomial Regression of Global_intensity (Weekday vs Weekend)",
+       x = "Time (Numeric)", y = "Average Global_intensity") +
+  scale_color_manual(values = c("Weekday" = "blue", "Weekend" = "red")) +
+  theme_minimal() +
+  theme(legend.title = element_blank())
+
+# Print the plots
+print(plot_linear)
+print(plot_polynomial)
