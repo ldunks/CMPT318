@@ -133,3 +133,52 @@ ggplot(results_df, aes(x = States, y = BIC)) +
   theme_minimal()
 
 
+#Q2
+# Discretize the 'Global_active_power' by rounding all numerical values to the nearest half-integer
+tuesday_morning_data$Global_active_power_discrete <- round(tuesday_morning_data$Global_active_power * 2) / 2
+
+# Vectors to store log-likelihood and BIC for each model trained on discretized data
+log_likelihoods_discrete <- numeric(length(state_range))
+BIC_values_discrete <- numeric(length(state_range))
+
+# Loop for each nstate value and store BIC and Log-likelihood on discretize data
+for (i in state_range) {
+  model_discrete <- depmix(response = Global_active_power_discrete ~ 1, 
+                           data = tuesday_morning_data, 
+                           nstates = i, 
+                           family = multinomial(),  # Use multinomial distribution
+                           ntimes = count_vector)
+  
+  fitModel_discrete <- fit(model_discrete, verbose = FALSE)
+  log_likelihoods_discrete[i - 3] <- logLik(fitModel_discrete) # Store log-likelihood
+  BIC_values_discrete[i - 3] <- BIC(fitModel_discrete) # Store BIC
+}
+
+# Create a data frame to store results for discrete data
+results_df_discrete <- data.frame(
+  States = state_range,
+  LogLikelihood = log_likelihoods_discrete,
+  BIC = BIC_values_discrete
+)
+
+# Plot and compare log-likelihood for continuous vs. discretized models
+ggplot() +
+  geom_line(data = results_df, aes(x = States, y = LogLikelihood), color = "blue") +
+  geom_point(data = results_df, aes(x = States, y = LogLikelihood), color = "blue") +
+  geom_line(data = results_df_discrete, aes(x = States, y = LogLikelihood), color = "green") +
+  geom_point(data = results_df_discrete, aes(x = States, y = LogLikelihood), color = "green") +
+  labs(title = "Log-Likelihood Comparison: Continuous vs Discrete", 
+       x = "Number of States", 
+       y = "Log-Likelihood") +
+  theme_minimal()
+
+# Plot and compare BIC values for continuous vs. discretized models
+ggplot() +
+  geom_line(data = results_df, aes(x = States, y = BIC), color = "red") +
+  geom_point(data = results_df, aes(x = States, y = BIC), color = "red") +
+  geom_line(data = results_df_discrete, aes(x = States, y = BIC), color = "purple") +
+  geom_point(data = results_df_discrete, aes(x = States, y = BIC), color = "purple") +
+  labs(title = "BIC Comparison: Continuous vs Discrete", 
+       x = "Number of States", 
+       y = "BIC") +
+  theme_minimal()
